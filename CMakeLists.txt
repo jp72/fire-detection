@@ -1,6 +1,15 @@
 project(fire)
 cmake_minimum_required(VERSION 2.8)
 aux_source_directory(. SRC_LIST)
+find_package( OpenCV REQUIRED )
+if(NOT OpenCV_FOUND)
+    message(SEND_ERROR "OpenCV not found")
+    return()
+else()
+    message("OpenCV found: ${OpenCV_LIBS}")
+    include_directories( ${OpenCV_INCLUDE_DIRS} )
+endif()
 add_executable(${PROJECT_NAME} ${SRC_LIST})
+target_link_libraries( fire ${OpenCV_LIBS} )
 
 
