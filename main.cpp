@@ -9,6 +9,7 @@ using namespace cv;
 Mat RGBDetect(Mat image);
 Mat YCbCrDetect(Mat image);
 float ChannelMean(Mat image, int channel);
+double Polynome(int Cr, int PolynomeNumber);
 
 int main(int argc, char** argv)
 {
@@ -26,6 +27,8 @@ int main(int argc, char** argv)
           printf("No image data \n");
           return -1;
       }
+      //namedWindow("OriginalImage", WINDOW_AUTOSIZE);
+      //imshow("OriginalImage", image);
       //namedWindow("RGB Image", WINDOW_AUTOSIZE );
       //imshow("RGB Image", RGBDetect(image));
       namedWindow("YCbCr Image", WINDOW_AUTOSIZE);
@@ -148,40 +151,56 @@ Mat YCbCrDetect(Mat image){
     int x = 0, y = 0;
     int Rows = image.size().height;
     int Cols = image.size().width;
-    Vec3b YCbCrPixel;
+    Vec3b YCrCbPixel;
     // 1st step.
     Mat FirstSecondStepBinary = cvCreateImage(image.size(),8,1);
     Mat ThirdStepBinary = cvCreateImage(image.size(),8,1);
     Mat FourthStepBinary = cvCreateImage(image.size(),8,1);
+    Mat FithStepBinary = cvCreateImage(image.size(),8,1);
+    Mat FinalBinary = cvCreateImage(image.size(),8,1);
     float MeanY = ChannelMean(ImageCbCr,0);
     float MeanCb = ChannelMean(ImageCbCr,2);
     float MeanCr = ChannelMean(ImageCbCr,1);
 
     for (x = 0; x < Cols; ++x){
         for (y = 0; y < Rows; ++y){
-            YCbCrPixel = ImageCbCr.at<Vec3b>(y,x);
+            YCrCbPixel = ImageCbCr.at<Vec3b>(y,x);
             // First and second steps
-            if(YCbCrPixel[0]>YCbCrPixel[2] && YCbCrPixel[1]>YCbCrPixel[2]){
+            if(YCrCbPixel[0]>YCrCbPixel[2] && YCrCbPixel[1]>YCrCbPixel[2]){
                 FirstSecondStepBinary.at<uchar>(y,x)=255;
             }
             //Third step.
             //Calculate mean for Y, Cb, Cr.
-            if(YCbCrPixel[0]>MeanY && YCbCrPixel[2]<MeanCb && YCbCrPixel[1]>MeanCr){
+            if(YCrCbPixel[0]>MeanY && YCrCbPixel[2]<MeanCb && YCrCbPixel[1]>MeanCr){
                 ThirdStepBinary.at<uchar>(y,x)=255;
             }
             // Fourth Step.
-            if(abs(YCbCrPixel[2]-YCbCrPixel[1])>=40){
+            if(abs(YCrCbPixel[2]-YCrCbPixel[1])>=40){
                 FourthStepBinary.at<uchar>(y,x)=255;
             }
+            // Final, 5th Step.
+            /* cout << YCrCbPixel << endl;
+            //printf("%.9lf\n", YCrCbPixel[1]);
+            cout << "Polynome 1: " << Polynome(YCrCbPixel[1],1) << endl;
+            cout << "Polynome 2: " << Polynome(YCrCbPixel[1],2) << endl;
+            cout << "Polynome 3: " << Polynome(YCrCbPixel[1],3) << endl; */
+            if(YCrCbPixel[2]>=Polynome(YCrCbPixel[1],1) && YCrCbPixel[2]<=Polynome(YCrCbPixel[1],3) && YCrCbPixel[2] <= Polynome(YCrCbPixel[1],2)){
+                FithStepBinary.at<uchar>(y,x)=255;
+            }
+            // Combine all of above into one image:
+            if(FirstSecondStepBinary.at<uchar>(y,x) == 255 && ThirdStepBinary.at<uchar>(y,x) == 255 && ThirdStepBinary.at<uchar>(y,x) == 255 && FourthStepBinary.at<uchar>(y,x) == 255){
+                FinalBinary.at<uchar>(y,x)=255;
+            }
+
         }
 
      }
 
-    Mat FinalBinary = FourthStepBinary;
+    //Mat FinalBinary = FourthStepBinary;
 
 
 
-    return FinalBinary;
+    return FithStepBinary;
 }
 
 float ChannelMean(Mat image, int channel){
@@ -189,4 +208,16 @@ float ChannelMean(Mat image, int channel){
     extractChannel(image, ExtractedChannel, channel);
     Scalar ChannelMean = mean(ExtractedChannel);
     return ChannelMean[0];
+}
+
+double Polynome(int Cr, int PolynomeNumber){
+    if(PolynomeNumber == 1){
+        return -2.6*pow(10,-10)*pow(Cr,7)+3.3*pow(10,-7)*pow(Cr,6)-1.7*pow(10,-4)*pow(Cr,5)+5.16*pow(10,-2)*pow(Cr,4)-9.10*pow(Cr,3)+9.6*pow(10,2)*pow(Cr,2)-5.6*pow(10,4)*Cr-1.4*pow(10,6);
+    }else if (PolynomeNumber == 2) {
+        return -6.77*pow(10,-8)*pow(Cr,5)+5.5*pow(10,-5)*pow(Cr,4)-1.76*pow(10,-2)*pow(Cr,3)+2.78*pow(Cr,2)-2.15*100*Cr+6.62*1000;
+    }else if (PolynomeNumber == 3) {
+        return 1.81*pow(10,-4)*pow(Cr,4)-1.02*pow(10,-1)*pow(Cr,3)+2.17*10*pow(Cr,2)-2.05*1000*Cr+7.29*pow(10,4);
+    }else{
+        return 0;
+    }
 }
