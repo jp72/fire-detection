@@ -7,6 +7,8 @@ using namespace std;
 using namespace cv;
 
 Mat RGBDetect(Mat image);
+Mat YCbCrDetect(Mat image);
+float ChannelMean(Mat image, int channel);
 
 int main(int argc, char** argv)
 {
@@ -24,9 +26,13 @@ int main(int argc, char** argv)
           printf("No image data \n");
           return -1;
       }
-      namedWindow("Display Image", WINDOW_AUTOSIZE );
-      image = RGBDetect(image);
-      imshow("Display Image", image);
+      //namedWindow("RGB Image", WINDOW_AUTOSIZE );
+      //imshow("RGB Image", RGBDetect(image));
+      namedWindow("YCbCr Image", WINDOW_AUTOSIZE);
+      imshow("YCbCr Image", YCbCrDetect(image));
+
+
+
       waitKey(0);
       return 0;
 }
@@ -128,4 +134,59 @@ Mat RGBDetect(Mat image)
     Mat binaryImage = BinaryRule3;
     return binaryImage;
 
+}
+
+Mat YCbCrDetect(Mat image){
+    /*В общем, состоит из следующих этапов:
+    1. Y(x,y) > Cb(x,y)
+    2. Cr(x,y) > Cb (x,y)
+    3. Pixel is fire if Y(x,y) > Mean(Y), Cb(x,y)<Mean(Cb),Cr(x,y)>Mean(Cr)
+    4. Pixel is fire if abs(Cb(x,y)-Cr(x,y) >= tau. Tau = 40;
+    */
+    Mat ImageCbCr = cvCreateImage(image.size(),8,3);
+    cvtColor(image, ImageCbCr, CV_BGR2YCrCb);
+    int x = 0, y = 0;
+    int Rows = image.size().height;
+    int Cols = image.size().width;
+    Vec3b YCbCrPixel;
+    // 1st step.
+    Mat FirstSecondStepBinary = cvCreateImage(image.size(),8,1);
+    Mat ThirdStepBinary = cvCreateImage(image.size(),8,1);
+    Mat FourthStepBinary = cvCreateImage(image.size(),8,1);
+    float MeanY = ChannelMean(ImageCbCr,0);
+    float MeanCb = ChannelMean(ImageCbCr,2);
+    float MeanCr = ChannelMean(ImageCbCr,1);
+
+    for (x = 0; x < Cols; ++x){
+        for (y = 0; y < Rows; ++y){
+            YCbCrPixel = ImageCbCr.at<Vec3b>(y,x);
+            // First and second steps
+            if(YCbCrPixel[0]>YCbCrPixel[2] && YCbCrPixel[1]>YCbCrPixel[2]){
+                FirstSecondStepBinary.at<uchar>(y,x)=255;
+            }
+            //Third step.
+            //Calculate mean for Y, Cb, Cr.
+            if(YCbCrPixel[0]>MeanY && YCbCrPixel[2]<MeanCb && YCbCrPixel[1]>MeanCr){
+                ThirdStepBinary.at<uchar>(y,x)=255;
+            }
+            // Fourth Step.
+            if(abs(YCbCrPixel[2]-YCbCrPixel[1])>=40){
+                FourthStepBinary.at<uchar>(y,x)=255;
+            }
+        }
+
+     }
+
+    Mat FinalBinary = FourthStepBinary;
+
+
+
+    return FinalBinary;
+}
+
+float ChannelMean(Mat image, int channel){
+    Mat ExtractedChannel = cvCreateImage(image.size(),8,1);
+    extractChannel(image, ExtractedChannel, channel);
+    Scalar ChannelMean = mean(ExtractedChannel);
+    return ChannelMean[0];
 }
