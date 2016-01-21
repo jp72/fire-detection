@@ -10,6 +10,8 @@ Mat RGBDetect(Mat image);
 Mat YCbCrDetect(Mat image);
 float ChannelMean(Mat image, int channel);
 double Polynome(int Cr, int PolynomeNumber);
+void HSIDetect(Mat* pImage, Mat* pHSIDetectedImage, int* width, int* height);
+void HSIConvert(Mat* pImage, Mat* pHSIImage, int* width, int* height);
 
 int main(int argc, char** argv)
 {
@@ -31,8 +33,15 @@ int main(int argc, char** argv)
       //imshow("OriginalImage", image);
       //namedWindow("RGB Image", WINDOW_AUTOSIZE );
       //imshow("RGB Image", RGBDetect(image));
-      namedWindow("YCbCr Image", WINDOW_AUTOSIZE);
-      imshow("YCbCr Image", YCbCrDetect(image));
+      Mat HSIDetectedImage = Mat(image.size().height,image.size().width,CV_32F);
+      //namedWindow("YCbCr Image", WINDOW_AUTOSIZE);
+      //imshow("YCbCr Image", YCbCrDetect(image));
+      int width = image.size().width;
+      int height = image.size().height;
+      cout << "image address:" << &image << endl;
+      HSIConvert(&image, &HSIDetectedImage, &width, &height);
+      //namedWindow("HSI Image", WINDOW_AUTOSIZE);
+      //imshow("HSI Image", HSIDetectedImage);
 
 
 
@@ -40,6 +49,48 @@ int main(int argc, char** argv)
       return 0;
 }
 
+void HSIDetect(Mat* pImage, Mat* pHSIDetectedImage, int* width, int* height){
+    *pHSIDetectedImage = *pImage;
+    cout << "pImage address:" << pImage << endl;
+    cout << "pHSIDetectedImage address: " << pHSIDetectedImage << endl;
+    Mat HSIConvertedImage = cvCreateImage(cvSize(*width, *height),8,3);
+    // RGB -> HSI convertion
+}
+
+void HSIConvert(Mat* pImage, Mat* pHSIImage, int* width, int* height){
+    Mat HSIImage = *pHSIImage;
+    Mat Image = *pImage;
+    for(int x = 0; x < *width ; ++x){
+        for(int y = 0; y < *height; ++y){
+            // Let's make RGB variables
+            int B = Image.at<Vec3b>(y,x)[0];
+            int G = Image.at<Vec3b>(y,x)[1];
+            int R = Image.at<Vec3b>(y,x)[2];
+            //cout << "B: " << B << " G: " << G << " R: " << R << endl;
+            //I conversion
+            HSIImage.at<Vec3f>(y,x)[2] = (B+G+R)/3;
+            //S conversion
+            // B, G, R min
+            double BGRmin = (B < G)? B : G;
+            BGRmin = (BGRmin < R)? BGRmin: R;
+            double S = 1-3*(BGRmin/(B+G+R));
+            S = (S < 0.00001)? 0 : (S > 0.99999)? 1 : S;
+            HSIImage.at<Vec3f>(y,x)[1] = S;
+           //H conversion
+            if(B<=G){
+                HSIImage.at<Vec3f>(y,x)[0] = 0;
+            }else{
+                double Theta = (0.5*((R-G)+(R-B)))/(sqrt(pow(R-G,2)+(R-B)*(G-B)));
+
+                Theta = pow(cos(Theta),-1);
+                HSIImage.at<Vec3f>(y,x)[0] = 360 - Theta;
+                cout << "H: " << HSIImage.at<Vec3f>(y,x)[0] << endl;
+            }
+
+        }
+    }
+    *pHSIImage = HSIImage;
+}
 
 Mat RGBDetect(Mat image)
 {
