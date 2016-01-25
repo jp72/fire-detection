@@ -1,0 +1,16 @@
+#IncludeRegexLine: ^[ 	]*#[ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/ivan/projects/fire-detection/detectors.cpp
+detectors.hpp
+/home/ivan/projects/fire-detection/detectors.hpp
+
+/home/ivan/projects/fire-detection/detectors.hpp
+opencv2/opencv.hpp
+-
+

@@ -1,0 +1,1 @@
+/home/ivan/projects/fire-detection/build/CMakeFiles/fire.dir
