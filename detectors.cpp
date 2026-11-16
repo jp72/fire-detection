@@ -1,7 +1,29 @@
 #include "detectors.hpp"
 
 #include <cmath>
+#include <vector>
 #include <opencv2/imgproc.hpp>
+
+cv::Mat CleanFireMask(const cv::Mat& mask, int minArea)
+{
+    CV_Assert(!mask.empty() && mask.type() == CV_8UC1 && minArea >= 1);
+    cv::Mat closed;
+    cv::morphologyEx(mask, closed, cv::MORPH_CLOSE,
+                     cv::getStructuringElement(cv::MORPH_RECT, cv::Size(3, 3)));
+    cv::Mat labels, stats, centroids;
+    const int count = cv::connectedComponentsWithStats(closed, labels, stats, centroids, 8);
+    std::vector<unsigned char> keep(count, 0);
+    for (int label = 1; label < count; ++label) {
+        if (stats.at<int>(label, cv::CC_STAT_AREA) >= minArea) keep[label] = 255;
+    }
+    cv::Mat result = cv::Mat::zeros(mask.size(), CV_8UC1);
+    for (int y = 0; y < result.rows; ++y) {
+        for (int x = 0; x < result.cols; ++x) {
+            result.at<unsigned char>(y, x) = keep[labels.at<int>(y, x)];
+        }
+    }
+    return result;
+}
 
 cv::Mat RGBDetect(const cv::Mat& image)
 {

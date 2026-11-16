@@ -26,7 +26,7 @@ int main()
                 }
             }
             cv::Mat image = black.clone();
-            image.at<cv::Vec3b>(1, 1) = cv::Vec3b(80, 150, 230);
+            image.at<cv::Vec3b>(1, 1) = cv::Vec3b(80, 140, 160);
             const cv::Mat rgb = RGBDetect(image);
             const cv::Mat ycrcb = YCbCrDetect(image);
             require(rgb.at<unsigned char>(1, 1) == 255, "RGB missed candidate");
@@ -34,6 +34,26 @@ int main()
             require(cv::countNonZero(rgb) == 1 && cv::countNonZero(ycrcb) == 1,
                     "Background must remain zero");
         }
+        cv::Mat regions = cv::Mat::zeros(30, 40, CV_8UC1);
+        regions(cv::Rect(3, 3, 5, 5)).setTo(255);
+        regions.at<unsigned char>(20, 20) = 255;
+        const cv::Mat before = regions.clone();
+        const cv::Mat cleaned = CleanFireMask(regions, 25);
+        require(cv::countNonZero(cleaned) == 25, "Small noise should be removed");
+        require(cv::countNonZero(regions != before) == 0, "Cleanup modified input");
+        require(CleanFireMask(regions, 26).at<unsigned char>(5, 5) == 0,
+                "Area threshold should be configurable");
+        require(cv::countNonZero(CleanFireMask(cv::Mat::zeros(9, 13, CV_8UC1))) == 0,
+                "Empty mask must remain empty");
+        cv::Mat fragments = cv::Mat::zeros(20, 20, CV_8UC1);
+        fragments(cv::Rect(3, 4, 4, 5)).setTo(255);
+        fragments(cv::Rect(8, 4, 4, 5)).setTo(255);
+        const cv::Mat joined = CleanFireMask(fragments, 25);
+        require(joined.at<unsigned char>(6, 7) == 255, "Small gap should be closed");
+        require(cv::countNonZero(joined) == 45, "Joined fragments should survive filtering");
+        cv::Mat edge = cv::Mat::zeros(20, 20, CV_8UC1);
+        edge(cv::Rect(0, 5, 5, 5)).setTo(255);
+        require(cv::countNonZero(CleanFireMask(edge)) == 25, "Border candidate lost");
         std::cout << "Detector tests passed\n";
         return 0;
     } catch (const std::exception& error) {

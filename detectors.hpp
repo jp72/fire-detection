@@ -7,4 +7,7 @@
 cv::Mat RGBDetect(const cv::Mat& image);
 cv::Mat YCbCrDetect(const cv::Mat& image);
 
+// Close one-pixel gaps, then discard connected regions below minArea pixels.
+cv::Mat CleanFireMask(const cv::Mat& mask, int minArea = 25);
+
 #endif

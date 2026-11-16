@@ -1,6 +1,7 @@
 #include "detectors.hpp"
 
 #include <iostream>
+#include <limits>
 #include <string>
 #include <vector>
 #include <opencv2/imgcodecs.hpp>
@@ -9,8 +10,8 @@
 namespace {
 void usage(std::ostream& out)
 {
-    out << "Usage: fire <image> [--method rgb|ycrcb] [--output <prefix>]\n"
-           "Defaults: --method ycrcb --output fire-result\n"
+    out << "Usage: fire <image> [--method rgb|ycrcb] [--output <prefix>] [--min-area <pixels>]\n"
+           "Defaults: --method ycrcb --output fire-result --min-area 25\n"
            "Writes <prefix>-mask.png and <prefix>-overlay.png.\n";
 }
 }
@@ -28,16 +29,36 @@ int main(int argc, char** argv)
 
     std::string method = "ycrcb";
     std::string prefix = "fire-result";
+    int minArea = 25;
     for (int i = 2; i < argc; ++i) {
         const std::string option = argv[i];
-        if ((option != "--method" && option != "--output") || i + 1 >= argc) {
+        if ((option != "--method" && option != "--output" && option != "--min-area") || i + 1 >= argc) {
             std::cerr << "Unknown option or missing value: " << option << '\n';
             usage(std::cerr);
             return 1;
         }
         const std::string value = argv[++i];
         if (option == "--method") method = value;
-        else prefix = value;
+        else if (option == "--output") prefix = value;
+        else {
+            unsigned long long parsed = 0;
+            if (value.empty() || value.find_first_not_of("0123456789") != std::string::npos) {
+                std::cerr << "--min-area must be a positive integer.\n";
+                return 1;
+            }
+            for (const char digit : value) {
+                parsed = parsed * 10 + (digit - '0');
+                if (parsed > static_cast<unsigned long long>(std::numeric_limits<int>::max())) {
+                    std::cerr << "--min-area is too large.\n";
+                    return 1;
+                }
+            }
+            if (parsed == 0) {
+                std::cerr << "--min-area must be at least 1.\n";
+                return 1;
+            }
+            minArea = static_cast<int>(parsed);
+        }
     }
     if ((method != "rgb" && method != "ycrcb") || prefix.empty()) {
         std::cerr << "Method must be rgb or ycrcb; output prefix must not be empty.\n";
@@ -50,7 +71,8 @@ int main(int argc, char** argv)
             std::cerr << "Cannot read image: " << argv[1] << '\n';
             return 1;
         }
-        const cv::Mat mask = method == "rgb" ? RGBDetect(image) : YCbCrDetect(image);
+        const cv::Mat rawMask = method == "rgb" ? RGBDetect(image) : YCbCrDetect(image);
+        const cv::Mat mask = CleanFireMask(rawMask, minArea);
         std::vector<std::vector<cv::Point>> contours;
         cv::findContours(mask.clone(), contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
         cv::Mat overlay = image.clone();
