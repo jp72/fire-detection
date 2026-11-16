@@ -1,11 +1,10 @@
-#include <opencv2/opencv.hpp>
+#ifndef FIRE_DETECTORS_HPP
+#define FIRE_DETECTORS_HPP
 
-using namespace cv;
-using namespace std;
+#include <opencv2/core.hpp>
 
-Mat RGBDetect(Mat image);
-Mat YCbCrDetect(Mat image);
-float ChannelMean(Mat image, int channel);
-double Polynome(int Cr, int PolynomeNumber);
-void HSIDetect(Mat* pImage, Mat* pHSIDetectedImage, int* width, int* height);
-Mat RGB2HSIConvert(Mat* pImage);
+// Input: nonempty CV_8UC3 BGR image. Output: CV_8UC1 mask (0 or 255).
+cv::Mat RGBDetect(const cv::Mat& image);
+cv::Mat YCbCrDetect(const cv::Mat& image);
+
+#endif
