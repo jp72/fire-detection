@@ -1,3 +1,33 @@
+# CMake build directories and in-source build artifacts
+/build/
+/build-*/
+/cmake-build-*/
+/CMakeFiles/
+/CMakeCache.txt
+/cmake_install.cmake
+/CTestTestfile.cmake
+/DartConfiguration.tcl
+/Testing/
+/Makefile
+/compile_commands.json
+/fire
+/detector_tests
+
+# Local IDE settings
+.kdev4/
+*.kdev4
+CMakeLists.txt.user*
+/.idea/
+
+# Generated detection results (keep source images trackable)
+*-mask.png
+*-overlay.png
+
+# Editor backups
+*~
+*.swp
+*.swo
+
 # Compiled Object files
 *.slo
 *.lo
